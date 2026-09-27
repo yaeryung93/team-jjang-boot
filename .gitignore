@@ -1,0 +1,9 @@
+# Local secrets and frontend artifacts
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+.DS_Store
+.idea/
+.vscode/

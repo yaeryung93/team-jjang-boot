@@ -1,0 +1,38 @@
+package com.teamjjang.task;
+
+import com.teamjjang.common.ApiException;
+import com.teamjjang.member.Member;
+import com.teamjjang.member.MemberRepository;
+import com.teamjjang.project.ProjectService;
+import java.util.List;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional(readOnly = true)
+public class TaskService {
+    private final TaskRepository tasks;
+    private final MemberRepository members;
+    private final ProjectService projects;
+    public TaskService(TaskRepository tasks, MemberRepository members, ProjectService projects) {
+        this.tasks = tasks; this.members = members; this.projects = projects;
+    }
+    public Task require(Long projectId, Long taskId) {
+        return tasks.findByIdAndProject_Id(taskId, projectId).orElseThrow(() -> ApiException.notFound("작업"));
+    }
+    public List<TaskDtos.View> list(Long projectId) {
+        projects.require(projectId);
+        return tasks.findByProject_IdOrderByIdAsc(projectId).stream().map(TaskDtos.View::from).toList();
+    }
+    @Transactional
+    public TaskDtos.View create(Long projectId, TaskDtos.Create input) {
+        var project = projects.require(projectId);
+        if (input.optimisticHours() > input.likelyHours() || input.likelyHours() > input.pessimisticHours()) {
+            throw ApiException.badRequest("예상 시간은 낙관 ≤ 보통 ≤ 비관 순서여야 합니다.");
+        }
+        Member assignee = input.assigneeId() == null ? null : members.findByIdAndProject_Id(input.assigneeId(), projectId)
+                .orElseThrow(() -> ApiException.badRequest("담당자는 해당 프로젝트의 팀원이어야 합니다."));
+        return TaskDtos.View.from(tasks.save(new Task(project, assignee, input.title().trim(),
+                input.optimisticHours(), input.likelyHours(), input.pessimisticHours())));
+    }
+}
