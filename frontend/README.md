@@ -1,6 +1,6 @@
 # 팀장봇 프론트엔드
 
-React + TypeScript + Vite 기본 구조입니다. React Router로 화면을 나누고 브라우저 fetch로 기존 Spring Boot API를 호출합니다. 전역 상태 관리나 별도 UI 라이브러리는 도입하지 않았습니다.
+React + JavaScript + Vite 기본 구조입니다. React Router로 화면을 나누고 브라우저 fetch로 기존 Spring Boot API를 호출합니다. 전역 상태 관리나 별도 UI 라이브러리는 도입하지 않았습니다.
 
 ## 실행
 
@@ -40,17 +40,17 @@ VITE_API_BASE_URL=http://localhost:8080
 
 ```text
 src/
-  app/router.tsx          경로, 데이터 loader, 생성 action
+  app/router.jsx          경로, 데이터 loader, 생성 action
   pages/                  프로젝트 목록 / 생성 / 상세 화면
   components/             공통 레이아웃, 오류 화면
   features/
-    projects/             프로젝트 타입, API
-    members/              팀원 타입, API
-    tasks/                작업 타입, API
-    progress/             진행률 타입, API
-  lib/http.ts             공통 fetch 및 ProblemDetail 오류 처리
+    projects/             프로젝트 API
+    members/              팀원 API
+    tasks/                작업 API
+    progress/             진행률 API
+  lib/http.js             공통 fetch 및 ProblemDetail 오류 처리
   styles/global.css       기본 스타일과 모바일 대응
-  main.tsx                시작점
+  main.jsx                시작점
 ```
 
 ## 현재 화면
@@ -62,9 +62,9 @@ src/
 | `/projects/new` | 프로젝트 등록, 서버 검증 오류 안내 |
 | `/projects/:projectId` | 프로젝트 정보, 팀원과 작업 조회 |
 
-실제 백엔드 응답만 표시합니다. 목 데이터와 가짜 시뮬레이션 확률은 없습니다. 팀원/작업 등록, 진행률 입력 화면, 인증 및 시뮬레이션은 후속 범위입니다. 이들 도메인의 기존 백엔드 API 호출 함수와 타입은 준비되어 있습니다.
+실제 백엔드 응답만 표시합니다. 목 데이터와 가짜 시뮬레이션 확률은 없습니다. 팀원/작업 등록, 진행률 입력 화면, 인증 및 시뮬레이션은 후속 범위입니다. 이들 도메인의 기존 백엔드 API 호출 함수는 준비되어 있습니다.
 
-React Router의 loader에서 조회하고 action에서 등록합니다. 경로가 바뀌면 이전 조회 요청을 취소합니다. 폼 제출 중에는 중복 클릭을 막고, 실패 시 입력값을 유지합니다. 진행률 타입의 `recordedAt`은 UTC ISO 문자열이고 프로젝트 마감일은 `YYYY-MM-DD` 문자열입니다.
+React Router의 loader에서 조회하고 action에서 등록합니다. 경로가 바뀌면 이전 조회 요청을 취소합니다. 폼 제출 중에는 중복 클릭을 막고, 실패 시 입력값을 유지합니다. 진행률 응답의 `recordedAt`은 UTC ISO 문자열이고 프로젝트 마감일은 `YYYY-MM-DD` 문자열입니다.
 
 ## 검증 및 빌드
 
@@ -75,6 +75,6 @@ pnpm build
 pnpm preview
 ```
 
-`build`는 TypeScript 검사 후 `dist/`를 생성합니다. `preview`는 빌드 확인용이며 기본 4173 포트를 사용하므로 API 연결 확인 시 백엔드 `CORS_ALLOWED_ORIGINS`에 `http://localhost:4173`을 추가하세요. 테스트는 공통 API 통신의 JSON 전송, 서버 오류, 네트워크 오류와 요청 취소를 검증합니다.
+`build`는 Vite로 `dist/`를 생성합니다. 컴포넌트는 `.jsx`, 일반 로직과 API는 `.js`로 작성합니다. `preview`는 빌드 확인용이며 기본 4173 포트를 사용하므로 API 연결 확인 시 백엔드 `CORS_ALLOWED_ORIGINS`에 `http://localhost:4173`을 추가하세요. 테스트는 공통 API 통신의 JSON 전송, 서버 오류, 네트워크 오류와 요청 취소를 검증합니다.
 
 배포 시 `VITE_API_BASE_URL`을 빌드 전에 설정하고, 호스팅 서버에서 존재하지 않는 파일 경로를 `index.html`로 연결하는 SPA fallback을 설정해야 상세 URL 새로고침이 동작합니다. 현재 백엔드는 로컬 개발용이며 공개 배포 전에 인증/인가와 운영 설정이 필요합니다.
