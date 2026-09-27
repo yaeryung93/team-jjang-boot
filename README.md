@@ -1,33 +1,173 @@
-# team-jjang-bot
+# 팀장봇 (Team jjang Bot)
 
-팀장봇: 학생 팀 프로젝트의 작업과 진행 상황을 관리하고, 향후 일정 위험 시뮬레이션으로 확장할 서비스입니다.
+팀 프로젝트의 작업, 담당자, 진행 상황을 한곳에서 관리하고 일정 위험을 분석하는 웹 서비스입니다.
 
-현재는 **로컬 개발용 Spring Boot + React 초기 구조**입니다. 백엔드는 프로젝트·팀원·작업 등록/조회 및 진행률 이력을 구현했습니다. React는 프로젝트 목록/생성/상세와 팀원·작업 조회를 연결했습니다. 로그인, AI WBS, 작업 의존관계 및 Monte Carlo 계산은 아직 구현하지 않았습니다.
+프로젝트 설명을 바탕으로 AI가 작업 분해를 돕고, 향후 Monte Carlo 시뮬레이션을 통해 마감 내 완료 가능성과 일정에 영향을 주는 작업을 확인할 수 있도록 개발하고 있습니다.
 
-## 구조
+> 현재 개발 중인 프로젝트입니다. Spring Boot와 React 기본 구조를 구성했으며, 프로젝트 관리 기능부터 단계적으로 구현하고 있습니다.
+
+## 기술 스택
+
+| 구분 | 기술 |
+|---|---|
+| Frontend | JavaScript, React, React Router |
+| Frontend Build | Vite, pnpm |
+| Backend | Java 17, Spring Boot, Spring Data JPA |
+| Backend Build | Maven |
+| Database | H2 — 로컬 개발용 |
+| Test | JUnit, Vitest |
+| Code Check | Oxlint |
+
+## 주요 기능
+
+### 프로젝트·팀원 관리
+
+- 프로젝트 생성 및 목록·상세 조회
+- 프로젝트 설명과 마감일 관리
+- 프로젝트별 팀원 등록 및 역할 관리
+- 작업 담당자 지정
+
+### 작업·진행 상황 관리
+
+- 프로젝트별 작업 등록 및 조회
+- 낙관·보통·비관의 3점 작업시간 추정
+- 작업별 진행률과 메모 기록
+- 진행률 변경 이력 조회
+- 작업 간 의존관계 관리
+
+### AI·일정 위험 분석
+
+- 프로젝트 설명을 바탕으로 AI 작업 분해(WBS) 초안 생성
+- Monte Carlo 시뮬레이션 기반 마감 내 완료 가능성 추정
+- 일정에 영향을 주는 주요 작업 분석
+- 진행 상황 변경에 따른 일정 위험 재계산
+- 작업 범위나 계획 변경에 따른 What-if 비교
+
+위 목록은 전체 개발 목표이며, 현재 구현 상태는 아래와 같습니다.
+
+## 현재 구현 상태
+
+### 백엔드
+
+- [x] Spring Boot 백엔드 기본 구조 구성
+- [x] Project, Member, Task, TaskProgress 도메인 구현
+- [x] 프로젝트 생성 및 목록·상세 조회 API
+- [x] 프로젝트별 팀원 등록·조회 API
+- [x] 프로젝트별 작업 등록·조회 API
+- [x] 진행률 기록 및 이력 조회 API
+- [x] 담당자의 프로젝트 소속 검증
+- [x] 3점 예상 시간 및 진행률 입력 검증
+- [x] 공통 오류 응답 및 CORS 설정
+- [x] H2 기반 HTTP 통합 테스트
+- [ ] 프로젝트·팀원·작업 수정 및 삭제
+- [ ] 로그인 및 프로젝트 접근 권한 검사
+- [ ] 작업 의존관계 관리
+- [ ] AI 작업 분해 기능
+- [ ] Monte Carlo 일정 시뮬레이션
+- [ ] 운영용 데이터베이스 및 마이그레이션 구성
+
+### 프론트엔드
+
+- [x] React + JavaScript + Vite 기본 구조 구성
+- [x] React Router 기반 화면 분리
+- [x] 도메인별 API 호출 로직 분리
+- [x] 프로젝트 목록·생성·상세 화면
+- [x] 프로젝트 상세 화면의 팀원·작업 조회
+- [x] 로딩·빈 목록·연결 오류 안내
+- [x] 잘못된 주소 처리
+- [x] API 통신 테스트
+- [ ] 팀원 등록·관리 화면
+- [ ] 작업 등록·관리 화면
+- [ ] 진행률 입력 및 이력 화면
+- [ ] 로그인 화면
+- [ ] 일정 시뮬레이션 결과 화면
+
+## 프로젝트 구조
 
 ```text
-backend/
-  pom.xml, mvnw, mvnw.cmd       Maven 빌드와 Wrapper
-  .env.example                 로컬 환경변수 예시
-  src/main/java/com/teamjjang/
-    config/                    React 개발 서버용 CORS
-    common/                    API 오류 처리
-    project/                   프로젝트 + 마감일
-    member/                    프로젝트별 참여자
-    task/                      담당자 + 3점 작업시간 추정
-    progress/                  진행률 변경 이력
-    simulation/                향후 계산 모듈 경계 설명
-  src/main/resources/          실행 설정
-  src/test/                   HTTP API 통합 테스트
-  docs/simulation.md          시뮬레이션 확장 설계
+team-jjang-bot/
+├── backend/
+│   ├── src/main/java/com/teamjjang/
+│   │   ├── common/       # 공통 오류 처리
+│   │   ├── config/       # CORS 설정
+│   │   ├── project/      # 프로젝트
+│   │   ├── member/       # 프로젝트 참여자
+│   │   ├── task/         # 작업 및 시간 추정
+│   │   ├── progress/     # 진행률 이력
+│   │   └── simulation/   # 향후 시뮬레이션 구현 위치
+│   ├── src/main/resources/
+│   ├── src/test/
+│   └── docs/
+└── frontend/
+    └── src/
+        ├── app/          # 라우팅 및 데이터 로딩
+        ├── pages/        # 페이지
+        ├── components/   # 공통 컴포넌트
+        ├── features/     # 도메인별 API
+        ├── lib/          # 공통 HTTP 요청 처리
+        └── styles/       # 공통 스타일
 ```
 
-도메인별로 Controller → Service → Repository를 둡니다. JPA 엔티티를 직접 응답하지 않고 DTO를 사용하며, 쓰기는 서비스 트랜잭션에서 처리합니다. 인터페이스/구현 클래스 분리나 다중 모듈은 도입하지 않았습니다. React는 루트의 `frontend/`에 있습니다. 화면·도메인별 API·공통 컴포넌트로 나누며 [프론트엔드 실행 안내](frontend/README.md)를 참고하세요.
+## 백엔드 API
 
-## React 프론트엔드 실행
+| 기능 | 메서드 | 경로 |
+|---|---|---|
+| 프로젝트 목록 조회 | GET | `/api/projects` |
+| 프로젝트 생성 | POST | `/api/projects` |
+| 프로젝트 상세 조회 | GET | `/api/projects/{projectId}` |
+| 팀원 목록 조회 | GET | `/api/projects/{projectId}/members` |
+| 팀원 등록 | POST | `/api/projects/{projectId}/members` |
+| 작업 목록 조회 | GET | `/api/projects/{projectId}/tasks` |
+| 작업 등록 | POST | `/api/projects/{projectId}/tasks` |
+| 진행률 이력 조회 | GET | `/api/projects/{projectId}/tasks/{taskId}/progress` |
+| 진행률 기록 | POST | `/api/projects/{projectId}/tasks/{taskId}/progress` |
 
-Node.js 24 LTS와 pnpm 11.19.0 기준입니다. 백엔드와 별도 터미널에서 실행합니다.
+현재 Member는 프로젝트별 참여자이며 로그인 계정과 연결되어 있지 않습니다. 다른 프로젝트의 팀원을 작업 담당자로 지정할 수 없지만, 사용자 인증 및 접근 권한 검사는 아직 구현하지 않았습니다.
+
+### 작업시간·진행률 기준
+
+- 작업시간은 정수 시간 단위로 입력합니다.
+- `1 ≤ 낙관 시간 ≤ 보통 시간 ≤ 비관 시간 ≤ 100000` 순서를 만족해야 합니다.
+- 진행률은 `0~100`의 정수로 입력합니다.
+- 진행률은 변경할 때마다 이력으로 저장합니다.
+- 재작업을 표현하기 위해 진행률 감소도 허용합니다.
+
+## 로컬 실행
+
+### 백엔드
+
+JDK 17 이상이 필요합니다. Maven은 Wrapper를 사용하므로 별도 설치 없이 실행할 수 있습니다.
+
+저장소의 `backend` 폴더에서 실행합니다.
+
+```bash
+cd backend
+./mvnw spring-boot:run
+```
+
+Windows에서는 다음 명령을 사용합니다.
+
+```bat
+mvnw.cmd spring-boot:run
+```
+
+- 기본 주소: `http://localhost:8080`
+- 상태 확인: `GET /actuator/health`
+- 기본 데이터 저장 위치: `backend/data/`
+
+별도 데이터베이스 설치 없이 H2 파일 DB로 실행할 수 있으며, 저장한 데이터는 서버 재시작 후에도 유지됩니다. 실행 위치는 `backend` 폴더로 유지하세요.
+
+### 프론트엔드
+
+Node.js 24 LTS와 pnpm 11.19.0을 기준으로 합니다.
+
+pnpm이 설치되어 있지 않다면 다음 명령으로 설치합니다.
+
+```bash
+npm install -g pnpm@11.19.0
+```
+
+백엔드와 별도 터미널에서 실행합니다.
 
 ```bash
 cd frontend
@@ -36,165 +176,120 @@ cp .env.example .env.local
 pnpm dev
 ```
 
-`http://localhost:5173`에서 프로젝트 목록/생성/상세 화면을 확인합니다.
+Windows에서는 `.env.example` 파일을 복사하여 `.env.local`이라는 이름으로 저장하면 됩니다.
 
-## 백엔드 빠른 실행
-
-JDK 17 이상이 필요합니다. Maven은 Wrapper가 내려받으므로 따로 설치하지 않아도 됩니다. 최초 실행에는 인터넷 연결이 필요합니다.
-
-```bash
-cd backend
-./mvnw spring-boot:run
-```
-
-Windows에서는 `mvnw.cmd spring-boot:run`을 실행합니다. 기본 주소는 `http://localhost:8080`이며 `GET /actuator/health`가 `{"status":"UP"}`를 반환하면 정상입니다.
-
-```bash
-./mvnw clean verify
-java -jar target/team-jjang-backend-0.0.1-SNAPSHOT.jar
-```
-
-실행 중인 서버를 종료한 뒤 jar를 실행하세요. 작업 디렉터리는 `backend/`로 유지해야 같은 H2 파일을 사용합니다. 기본 데이터는 `backend/data/`에 저장되며 재시작 후 유지됩니다. 테스트는 별도의 메모리 DB를 사용합니다.
-
-Spring Boot 4.1.1, Spring MVC, Data JPA, Validation, Actuator, H2를 사용합니다. [Spring 공식 Java/빌드 요구사항](https://docs.spring.io/spring-boot/4.1/system-requirements.html)을 참고하세요.
+- 기본 주소: `http://localhost:5173`
+- API 연동을 위해 백엔드도 함께 실행해야 합니다.
 
 ## 환경변수
 
-기본 설정만으로 바로 실행할 수 있습니다. 필요하면 `backend/.env.example`을 `.env`로 복사해 수정하세요. **Spring Boot는 `.env` 파일을 자동으로 읽지 않습니다.** IDE 실행 설정에 환경변수를 등록하거나 다음과 같이 로드합니다. 아래 명령은 직접 작성한 신뢰할 수 있는 `.env`에만 사용하세요.
+### 백엔드
 
-```bash
-cp .env.example .env
-set -a
-. ./.env
-set +a
-./mvnw spring-boot:run
-```
+`backend/.env.example`을 참고합니다.
 
 | 변수 | 기본값 | 설명 |
 |---|---|---|
-| `SERVER_ADDRESS` | `127.0.0.1` | 로컬에서만 접근 |
-| `SERVER_PORT` | `8080` | API 포트 |
-| `DB_URL` | `jdbc:h2:file:./data/teamjjang` | H2 파일 DB |
-| `DB_USERNAME` | `sa` | 로컬 DB 사용자 |
-| `DB_PASSWORD` | 빈 문자열 | 로컬 DB 비밀번호 |
-| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173,http://localhost:3000` | 쉼표로 구분한 React 주소 |
+| `SERVER_ADDRESS` | `127.0.0.1` | 서버 접근 주소 |
+| `SERVER_PORT` | `8080` | 서버 포트 |
+| `DB_URL` | `jdbc:h2:file:./data/teamjjang` | H2 연결 주소 |
+| `DB_USERNAME` | `sa` | DB 사용자 |
+| `DB_PASSWORD` | 빈 문자열 | DB 비밀번호 |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173,http://localhost:3000` | 허용할 프론트엔드 주소 |
 
-현재 H2 드라이버만 포함되어 있습니다. MySQL/PostgreSQL 전환은 해당 드라이버와 스키마 마이그레이션을 추가해야 하며 URL 변경만으로 지원되지 않습니다. `ddl-auto=update`는 개발 편의용이므로 공유/운영 DB 도입 시 Flyway 등으로 바꾸세요. `.env` 및 DB 파일은 Git에서 제외합니다.
+기본 설정만으로 실행할 수 있습니다. Spring Boot는 `.env` 파일을 자동으로 읽지 않으므로 값을 변경하려면 IDE 실행 설정이나 터미널 환경변수에 등록해야 합니다.
 
-## API
+현재 H2 드라이버만 포함되어 있으며, MySQL 등으로 변경하려면 해당 드라이버와 설정을 추가해야 합니다.
 
-모든 경로는 `/api`로 시작합니다. 생성은 `201`, 조회는 `200`을 반환합니다.
+### 프론트엔드
 
-| 메서드 | 경로 | 기능 |
-|---|---|---|
-| GET / POST | `/api/projects` | 프로젝트 목록 / 생성 |
-| GET | `/api/projects/{projectId}` | 프로젝트 상세 |
-| GET / POST | `/api/projects/{projectId}/members` | 참여자 목록 / 등록 |
-| GET / POST | `/api/projects/{projectId}/tasks` | 작업 목록 / 등록 |
-| GET / POST | `/api/projects/{projectId}/tasks/{taskId}/progress` | 진행률 이력 / 기록 |
-
-프로젝트 생성:
-
-```bash
-curl -i http://localhost:8080/api/projects \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"팀장봇 MVP","description":"3인 팀 프로젝트","deadline":"2099-12-31"}'
-```
-
-실제 마감일로 바꾸세요. 생성 시 과거 날짜는 거부합니다. 이후 요청의 `1`은 생성 응답의 프로젝트·팀원·작업 ID로 각각 바꾸세요.
-
-```bash
-curl http://localhost:8080/api/projects/1/members \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"예령","role":"백엔드"}'
-
-curl http://localhost:8080/api/projects/1/tasks \
-  -H 'Content-Type: application/json' \
-  -d '{"title":"프로젝트 API","assigneeId":1,"optimisticHours":4,"likelyHours":8,"pessimisticHours":16}'
-
-curl http://localhost:8080/api/projects/1/tasks/1/progress \
-  -H 'Content-Type: application/json' \
-  -d '{"percent":40,"note":"기본 API 구현 완료"}'
-```
-
-- Member는 프로젝트별 참여자입니다. 로그인 계정이 아니며, 다른 프로젝트의 Member를 작업 담당자로 지정할 수 없습니다. 미배정 작업은 `assigneeId`를 생략하거나 `null`로 보냅니다.
-- 추정값은 정수 작업시간(hours)이며 `1 ≤ optimisticHours ≤ likelyHours ≤ pessimisticHours ≤ 100000`입니다. 세 값이 같아도 허용합니다.
-- 진행률은 필수 정수 `0~100`입니다. `note`와 프로젝트의 `description`은 빈 문자열을 허용하며 누락은 거부합니다.
-- 진행률 기록은 덮어쓰지 않고 추가합니다. 이력은 ID 내림차순이며 첫 항목을 현재 상태로 해석합니다. 기록이 없으면 0%입니다. 재작업을 표현하기 위해 감소도 허용합니다. `recordedAt`은 서버가 기록한 UTC 시간입니다.
-- 목록은 초기 소규모 팀을 위한 전체 조회입니다. 데이터가 늘어나면 페이지네이션을 추가하세요. 수정·삭제 API는 후속 구현 범위입니다.
-
-입력 오류는 `400`, 없는 리소스는 `404`, DB 제약 충돌은 `409`입니다. 오류는 `application/problem+json` 형식입니다.
-
-```json
-{"type":"about:blank","title":"Bad Request","status":400,"detail":"입력값을 확인해 주세요.","errors":{"name":"must not be blank"}}
-```
-
-## React 연결 예시
-
-Vite 프로젝트의 `.env.local`:
+`frontend/.env.local`에 설정합니다.
 
 ```dotenv
 VITE_API_BASE_URL=http://localhost:8080
 ```
 
-```javascript
-const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/projects`);
-const body = await response.json();
-if (!response.ok) throw new Error(body.detail ?? "요청 실패");
-console.log(body);
+Vite는 `.env.local`을 자동으로 읽습니다. 변경 후 개발 서버를 재시작하세요.
+
+`VITE_`로 시작하는 환경변수는 브라우저에 공개되므로 비밀번호나 비밀키를 넣지 않습니다.
+
+## 테스트 및 빌드
+
+### 백엔드
+
+`backend` 폴더에서 실행합니다.
+
+```bash
+./mvnw clean verify
 ```
 
-기본 CORS는 `localhost:5173`과 `localhost:3000`만 허용합니다. `127.0.0.1`을 프론트 주소로 사용하면 환경변수에 그 origin도 추가하세요. 현재 쿠키 인증은 사용하지 않습니다.
+테스트는 별도의 H2 메모리 DB를 사용합니다. 프로젝트 등록부터 진행률 기록까지의 흐름과 잘못된 입력, 프로젝트 간 데이터 혼용 방지, CORS 등을 검증합니다.
+
+### 프론트엔드
+
+`frontend` 폴더에서 실행합니다.
+
+```bash
+pnpm lint
+pnpm test
+pnpm build
+```
+
+API 통신 테스트는 JSON 요청, 서버 검증 오류, 네트워크 오류 및 요청 취소를 검증합니다. 빌드 결과는 `frontend/dist/`에 생성됩니다.
+
+## 일정 시뮬레이션 개발 방향
+
+AI는 프로젝트 설명을 분석하여 작업과 의존관계 초안을 제안하고, 일정 위험도는 별도의 계산 로직으로 산출할 예정입니다.
+
+1. 작업 의존관계와 순환 검증
+2. 잔여 작업시간 및 팀원별 가용시간 정의
+3. 3점 추정 기반 Monte Carlo 반복 계산
+4. 마감 내 완료 비율과 예상 종료 시점 분석
+5. 계획 변경 전후 결과 비교
+
+현재는 3점 예상 시간 저장까지 구현했으며, 실제 시뮬레이션 계산은 구현 전입니다. 계산 결과는 입력한 가정에 따른 추정치로 제공할 예정입니다.
+
+자세한 내용은 [시뮬레이션 확장 설계](backend/docs/simulation.md)를 참고하세요.
 
 ## 커밋 메시지 규칙
 
-프론트엔드와 백엔드 모두 아래 형식을 사용합니다.
+커밋 메시지는 `타입: 변경 내용` 형식으로 작성합니다.
+
+필요하면 `feat(frontend): 프로젝트 생성 화면 추가`처럼 변경 범위를 표시할 수 있습니다.
+
+| 타입 | 사용 목적 |
+|---|---|
+| `feat` | 새로운 기능 추가 |
+| `fix` | 오류 수정 |
+| `refactor` | 기능 동작을 유지하면서 코드 구조 개선 |
+| `design` | 화면 디자인·CSS·레이아웃 변경 |
+| `test` | 테스트 추가·수정 |
+| `docs` | README 등 문서 작성·수정 |
+| `style` | 들여쓰기·공백 등 코드 형식 정리 |
+| `chore` | 빌드·의존성·개발 도구 설정 |
+| `perf` | 성능 개선 |
+| `ci` | 자동 빌드·테스트 설정 |
+| `revert` | 이전 변경 되돌리기 |
+
+### 예시
 
 ```text
-타입(범위): 변경 내용
+feat: 프로젝트 생성 화면 추가
+fix: 다른 프로젝트의 팀원 지정 오류 수정
+refactor: 공통 API 요청 로직 분리
+design: 프로젝트 카드 모바일 배치 개선
+test: 진행률 입력 검증 테스트 추가
+docs: README에 커밋 메시지 규칙 추가
 ```
 
-타입은 소문자 영어, 변경 내용은 한국어로 작성합니다. 범위는 선택 사항이며 `frontend`, `backend`, `docs` 등을 사용합니다. 공통 변경은 `docs: 실행 방법 정리`처럼 범위를 생략해도 됩니다.
+- 제목은 한국어로 변경 내용을 구체적으로 작성합니다.
+- 제목 끝에 마침표를 붙이지 않습니다.
+- 하나의 커밋에는 하나의 목적에 해당하는 변경을 묶습니다.
+- 자세한 설명이 필요하면 제목 아래에 한 줄을 띄우고 본문을 작성합니다.
+- PR 제목에도 같은 형식을 사용합니다.
 
-| 타입 | 사용 목적 | 예시 |
-|---|---|---|
-| `feat` | 새로운 기능 추가 | `feat(frontend): 프로젝트 생성 화면 추가` |
-| `fix` | 잘못된 동작 수정 | `fix(backend): 다른 프로젝트의 담당자 지정 차단` |
-| `refactor` | 기능 변경 없이 코드 구조 개선 | `refactor(frontend): API 요청 로직 분리` |
-| `design` | 화면 디자인, CSS, 레이아웃 변경 | `design(frontend): 프로젝트 카드 모바일 배치 개선` |
-| `style` | 동작에 영향 없는 코드 서식 변경 | `style(backend): 들여쓰기 정리` |
-| `docs` | README 등 문서 변경 | `docs: 커밋 메시지 규칙 추가` |
-| `test` | 테스트 추가·수정 | `test(backend): 진행률 입력 검증 테스트 추가` |
-| `chore` | 의존성, 빌드 설정 등 개발 환경 관리 | `chore(frontend): 개발 의존성 업데이트` |
-| `perf` | 성능 개선 | `perf(backend): 작업 목록 조회 쿼리 개선` |
-| `ci` | 자동 빌드·테스트 설정 변경 | `ci: PR 빌드 검사 추가` |
-| `revert` | 이전 커밋 되돌리기 | `revert: 프로젝트 목록 정렬 변경 되돌리기` |
+## 기여자
 
-### 작성 원칙
-
-- 제목은 변경 내용을 한눈에 알 수 있게 짧게 작성하고 끝에 마침표를 붙이지 않습니다.
-- `수정`, `작업 완료`처럼 모호한 제목 대신 무엇을 바꿨는지 적습니다.
-- 한 커밋에는 하나의 목적을 담습니다. 관련 없는 기능 추가와 문서 수정은 나눕니다.
-- 설명이 더 필요하면 제목 다음에 빈 줄을 두고 변경 이유와 주요 내용을 본문에 적습니다.
-- 관련 이슈가 있으면 본문 마지막에 `Refs: #이슈번호`를 적습니다. 이슈가 없으면 생략합니다.
-- PR 제목도 같은 형식을 사용합니다. Squash merge 시 최종 커밋 제목도 이 규칙에 맞춥니다.
-
-```text
-fix(backend): 작업 담당자의 프로젝트 소속 검증
-
-다른 프로젝트의 팀원을 담당자로 지정할 수 있던 문제를 수정합니다.
-담당자가 해당 프로젝트에 속하지 않으면 400 응답을 반환합니다.
-```
-
-이 규칙은 팀 협업을 위한 작성 기준이며, 자동 검사 도구는 아직 설정하지 않았습니다.
-
-## 구현 경계와 다음 단계
-
-현재 인증/인가가 없으며 로컬 개발용입니다. 공개 배포 전 로그인과 프로젝트 접근 권한을 구현해야 합니다. CORS는 접근 권한 검증을 대체하지 않습니다.
-
-1. 팀원·작업 등록 및 진행률 입력 화면, 필요한 수정/삭제 API 추가
-2. 로그인 계정과 프로젝트 참여자 연결 및 권한 검증
-3. 의존관계 DAG, 잔여시간 추정, 팀원 가용시간 정의
-4. 순수 Java 시뮬레이션과 결과 저장/조회 추가
-
-상세한 계산 경계는 [시뮬레이션 확장 설계](backend/docs/simulation.md)를 참고하세요. 테스트는 프로젝트 등록부터 진행률 이력까지의 HTTP 흐름, 프로젝트 간 데이터 혼용 방지, 잘못된 입력, CORS 및 헬스 체크를 검증합니다.
+| <img src="https://github.com/yaeryung93.png" width="100" alt="김예령 프로필"> | <img src="https://github.com/ksm524923.png" width="100" alt="고성민 프로필"> | <img src="https://github.com/chlgeun112.png" width="100" alt="최강은 프로필"> |
+| :---: | :---: | :---: |
+| **[김예령](https://github.com/yaeryung93)** | **[고성민](https://github.com/ksm524923)** | **[최강은](https://github.com/chlgeun112)** |
+| 백엔드 개발 | 프론트엔드 개발 | UI/UX 디자인<br>기획 |
