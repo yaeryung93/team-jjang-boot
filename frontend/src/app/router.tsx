@@ -35,14 +35,15 @@ export type ProjectDetail = Awaited<ReturnType<typeof projectDetail>>
 
 export const router = createBrowserRouter([{
   element: <Layout />,
+  hydrateFallbackElement: <p className="container" role="status">불러오는 중…</p>,
   children: [{
     errorElement: <RouteError />,
     children: [
-      { index: true, loader: () => redirect('/projects') },
+      { index: true, loader: () => redirect('/projects'), element: <p role="status">이동 중…</p> },
       { path: 'projects', loader: ({ request }) => projectsApi.list(request.signal), element: <ProjectsPage />, hydrateFallbackElement: <p role="status">불러오는 중…</p> },
       { path: 'projects/new', action: createProject, element: <NewProjectPage /> },
       { path: 'projects/:projectId', loader: projectDetail, element: <ProjectDetailPage />, hydrateFallbackElement: <p role="status">불러오는 중…</p> },
-      { path: '*', loader: () => { throw new Response(null, { status: 404 }) } },
+      { path: '*', element: <RouteError />, loader: () => { throw new Response(null, { status: 404 }) } },
     ],
   }],
 }])
