@@ -10,14 +10,25 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/projects")
 public class ProjectController {
     private final ProjectService service;
-    public ProjectController(ProjectService service) { this.service = service; }
+    public ProjectController(ProjectService service) {
+        this.service = service;
+    }
     @GetMapping
-    public List<ProjectDtos.View> list() { return service.list(); }
+    public List<ProjectDtos.View> list() {
+        return service.list();
+    }
     @GetMapping("/{id}")
-    public ProjectDtos.View get(@PathVariable Long id) { return service.get(id); }
+    public ProjectDtos.View get(@PathVariable Long id) {
+        return service.get(id);
+    }
     @PostMapping
     public ResponseEntity<ProjectDtos.View> create(@Valid @RequestBody ProjectDtos.Create input) {
         var result = service.create(input);
         return ResponseEntity.created(URI.create("/api/projects/" + result.id())).body(result);
     }
+    @PatchMapping("/{id}")
+    public ProjectDtos.View update(@PathVariable Long id, @Valid @RequestBody ProjectDtos.Update input){
+        return service.update(id, input);
+    }
+
 }

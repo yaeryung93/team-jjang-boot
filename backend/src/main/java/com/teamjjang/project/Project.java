@@ -18,8 +18,20 @@ public class Project {
     public Project(String name, String description, LocalDate deadline) {
         this.name = name; this.description = description; this.deadline = deadline;
     }
-    public Long getId() { return id; }
-    public String getName() { return name; }
-    public String getDescription() { return description; }
-    public LocalDate getDeadline() { return deadline; }
+    public Long getId() {
+        return id;
+    }
+    public String getName() {
+        return name;
+    }
+    public String getDescription() {
+        return description;
+    }
+    public LocalDate getDeadline() {
+        return deadline;
+    }
+    public void updateInfo(String name, String description){
+        this.name=name;
+        this.description=description;
+    }
 }

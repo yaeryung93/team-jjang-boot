@@ -4,14 +4,18 @@ import java.net.URI;
 import java.net.http.*;
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
     "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1",
+    "spring.datasource.username=sa",
+    "spring.datasource.password=",
     "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 class ApiIntegrationTest {
@@ -99,5 +103,66 @@ class ApiIntegrationTest {
                 assertThat(response.headers().firstValue("Access-Control-Allow-Origin")).isEmpty();
             }
         }
+    }
+
+    @Test void updatesProjectAndPersistsWithoutChangingDeadline() throws Exception {
+        String path = "/api/projects/" + project();
+        var before = json.readTree(request("GET", path, null).body());
+        var response = request("PATCH", path, "{\"name\":\"  수정한 팀장봇  \",\"description\":\"새 설명\"}");
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+        var updated = json.readTree(response.body());
+        assertThat(updated.get("name").asText()).isEqualTo("수정한 팀장봇");
+        assertThat(updated.get("description").asText()).isEqualTo("새 설명");
+        assertThat(updated.get("id")).isEqualTo(before.get("id"));
+        assertThat(updated.get("deadline")).isEqualTo(before.get("deadline"));
+        var fetched = request("GET", path, null);
+        assertThat(fetched.statusCode()).isEqualTo(200);
+        assertThat(json.readTree(fetched.body())).isEqualTo(updated);
+    }
+
+    @Test void acceptsEmptyDescriptionAndMaximumLengthsOnUpdate() throws Exception {
+        String path = "/api/projects/" + project();
+        for (String description : new String[] {"", "가".repeat(2000)}) {
+            String body = json.writeValueAsString(java.util.Map.of("name", "나".repeat(100), "description", description));
+            var response = request("PATCH", path, body);
+            assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+            var fetched = json.readTree(request("GET", path, null).body());
+            assertThat(fetched.get("name").asText()).isEqualTo("나".repeat(100));
+            assertThat(fetched.get("description").asText()).isEqualTo(description);
+        }
+    }
+
+    @Test void rejectsInvalidProjectUpdatesWithoutChangingStoredData() throws Exception {
+        String path = "/api/projects/" + project();
+        var before = json.readTree(request("GET", path, null).body());
+        for (String body : new String[] {
+                "{\"description\":\"변경\"}",
+                "{\"name\":null,\"description\":\"변경\"}",
+                "{\"name\":\"\",\"description\":\"변경\"}",
+                "{\"name\":\"   \",\"description\":\"변경\"}",
+                "{\"name\":\"변경\"}",
+                "{\"name\":\"변경\",\"description\":null}",
+                json.writeValueAsString(java.util.Map.of("name", "가".repeat(101), "description", "변경")),
+                json.writeValueAsString(java.util.Map.of("name", "변경", "description", "가".repeat(2001)))}) {
+            var response = request("PATCH", path, body);
+            assertThat(response.statusCode()).as(response.body()).isEqualTo(400);
+            assertThat(json.readTree(request("GET", path, null).body())).isEqualTo(before);
+        }
+    }
+
+    @Test void returnsNotFoundWhenUpdatingMissingProject() throws Exception {
+        var response = request("PATCH", "/api/projects/999999999", "{\"name\":\"변경\",\"description\":\"설명\"}");
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(404);
+    }
+
+    @Test void allowsPatchPreflightFromReact() throws Exception {
+        var response = client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/projects/1"))
+                .header("Origin", "http://localhost:5173")
+                .header("Access-Control-Request-Method", "PATCH")
+                .header("Access-Control-Request-Headers", "content-type")
+                .method("OPTIONS", HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString());
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+        assertThat(response.headers().firstValue("Access-Control-Allow-Origin")).contains("http://localhost:5173");
+        assertThat(response.headers().firstValue("Access-Control-Allow-Methods").orElse("")).contains("PATCH");
     }
 }
