@@ -165,4 +165,81 @@ class ApiIntegrationTest {
         assertThat(response.headers().firstValue("Access-Control-Allow-Origin")).contains("http://localhost:5173");
         assertThat(response.headers().firstValue("Access-Control-Allow-Methods").orElse("")).contains("PATCH");
     }
+
+    private long memberFor(long projectId) throws Exception {
+        return create("/api/projects/" + projectId + "/members",
+                "{\"name\":\"테스트 팀원\",\"role\":\"개발\"}").get("id").asLong();
+    }
+
+    private JsonNode storedTask(long projectId, long taskId) throws Exception {
+        var response = request("GET", "/api/projects/" + projectId + "/tasks", null);
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+        for (JsonNode task : json.readTree(response.body())) {
+            if (task.get("id").asLong() == taskId) {
+                return task;
+            }
+        }
+        throw new AssertionError("저장된 작업을 찾지 못했습니다: " + taskId);
+    }
+
+    @Test void changesRepeatsClearsAndReassignsTaskAssignee() throws Exception {
+        long projectId = project();
+        long first = memberFor(projectId);
+        long second = memberFor(projectId);
+        String base = "/api/projects/" + projectId + "/tasks";
+        JsonNode original = create(base, taskBody(first, 2, 4, 8));
+        long taskId = original.get("id").asLong();
+
+        for (Long next : new Long[] {second, second, null, null, first}) {
+            var response = request("PATCH", base + "/" + taskId + "/assignee",
+                    "{\"assigneeId\":" + next + "}");
+            assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+            JsonNode updated = json.readTree(response.body());
+            if (next == null) {
+                assertThat(updated.get("assigneeId").isNull()).isTrue();
+            } else {
+                assertThat(updated.get("assigneeId").asLong()).isEqualTo(next);
+            }
+            for (String field : new String[] {"id", "projectId", "title", "optimisticHours", "likelyHours", "pessimisticHours"}) {
+                assertThat(updated.get(field)).as(field).isEqualTo(original.get(field));
+            }
+            assertThat(storedTask(projectId, taskId)).isEqualTo(updated);
+        }
+    }
+
+    @Test void rejectsInvalidAssigneesWithoutChangingTask() throws Exception {
+        long projectId = project();
+        long current = memberFor(projectId);
+        long outsider = memberFor(project());
+        String base = "/api/projects/" + projectId + "/tasks";
+        JsonNode original = create(base, taskBody(current, 1, 2, 3));
+        long taskId = original.get("id").asLong();
+        for (long invalidId : new long[] {outsider, Long.MAX_VALUE, 0, -1}) {
+            var response = request("PATCH", base + "/" + taskId + "/assignee",
+                    "{\"assigneeId\":" + invalidId + "}");
+            assertThat(response.statusCode()).as(response.body()).isEqualTo(400);
+            assertThat(storedTask(projectId, taskId)).isEqualTo(original);
+        }
+    }
+
+    @Test void rejectsMissingAndOtherProjectTasksBeforeChangingAssignee() throws Exception {
+        long owner = project();
+        long other = project();
+        long current = memberFor(owner);
+        long otherMember = memberFor(other);
+        JsonNode original = create("/api/projects/" + owner + "/tasks", taskBody(current, 1, 2, 3));
+        long taskId = original.get("id").asLong();
+        String[] paths = {
+                "/api/projects/" + other + "/tasks/" + taskId + "/assignee",
+                "/api/projects/" + owner + "/tasks/" + Long.MAX_VALUE + "/assignee",
+                "/api/projects/" + Long.MAX_VALUE + "/tasks/" + taskId + "/assignee"
+        };
+        for (String path : paths) {
+            for (Long next : new Long[] {otherMember, null}) {
+                var response = request("PATCH", path, "{\"assigneeId\":" + next + "}");
+                assertThat(response.statusCode()).as(response.body()).isEqualTo(404);
+                assertThat(storedTask(owner, taskId)).isEqualTo(original);
+            }
+        }
+    }
 }

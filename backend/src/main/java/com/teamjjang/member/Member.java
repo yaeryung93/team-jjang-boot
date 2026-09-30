@@ -1,6 +1,7 @@
 package com.teamjjang.member;
 
 import com.teamjjang.project.Project;
+import com.teamjjang.task.TaskDtos;
 import jakarta.persistence.*;
 
 /** A participant in one project; not an authentication account. */
