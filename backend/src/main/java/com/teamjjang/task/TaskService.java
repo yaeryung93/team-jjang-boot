@@ -30,9 +30,23 @@ public class TaskService {
         if (input.optimisticHours() > input.likelyHours() || input.likelyHours() > input.pessimisticHours()) {
             throw ApiException.badRequest("예상 시간은 낙관 ≤ 보통 ≤ 비관 순서여야 합니다.");
         }
-        Member assignee = input.assigneeId() == null ? null : members.findByIdAndProject_Id(input.assigneeId(), projectId)
+        Member assignee = (input.assigneeId()==null) ? null : members.findByIdAndProject_Id(input.assigneeId(), projectId)
                 .orElseThrow(() -> ApiException.badRequest("담당자는 해당 프로젝트의 팀원이어야 합니다."));
         return TaskDtos.View.from(tasks.save(new Task(project, assignee, input.title().trim(),
                 input.optimisticHours(), input.likelyHours(), input.pessimisticHours())));
+    }
+
+    @Transactional
+    public TaskDtos.View changeAssignee(Long projectId, Long taskId, TaskDtos.ChangeAssignee input) {
+        Task task = require(projectId, taskId);
+        Member assignee = null;
+        if (input.assigneeId()!=null) {
+            assignee = members.findByIdAndProject_Id(input.assigneeId(), projectId).orElse(null);
+            if (assignee==null) {
+                throw ApiException.badRequest("담당자는 해당 프로젝트의 팀원이어야 합니다.");
+            }
+        }
+        task.changeAssignee(assignee);
+        return TaskDtos.View.from(task);
     }
 }

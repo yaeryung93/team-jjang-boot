@@ -24,21 +24,41 @@ public class Task {
     private int likelyHours;
     @Column(nullable = false)
     private int pessimisticHours;
+
     protected Task() {}
-    public Task(Project project, Member assignee, String title, int optimisticHours,
-                int likelyHours, int pessimisticHours) {
+    public Task(Project project, Member assignee, String title, int optimisticHours, int likelyHours, int pessimisticHours) {
         if (optimisticHours < 1 || optimisticHours > likelyHours || likelyHours > pessimisticHours) {
             throw new IllegalArgumentException("Invalid three-point estimate");
         }
-        this.project = project; this.assignee = assignee; this.title = title;
-        this.optimisticHours = optimisticHours; this.likelyHours = likelyHours;
+        this.project = project;
+        this.assignee = assignee;
+        this.title = title;
+        this.optimisticHours = optimisticHours;
+        this.likelyHours = likelyHours;
         this.pessimisticHours = pessimisticHours;
     }
-    public Long getId() { return id; }
-    public Long getProjectId() { return project.getId(); }
-    public Long getAssigneeId() { return assignee == null ? null : assignee.getId(); }
-    public String getTitle() { return title; }
-    public int getOptimisticHours() { return optimisticHours; }
-    public int getLikelyHours() { return likelyHours; }
-    public int getPessimisticHours() { return pessimisticHours; }
+    public void changeAssignee(Member assignee){
+        this.assignee=assignee;
+    }
+    public Long getId() {
+        return id;
+    }
+    public Long getProjectId() {
+        return project.getId();
+    }
+    public Long getAssigneeId() {
+        return assignee == null ? null : assignee.getId();
+    }
+    public String getTitle() {
+        return title;
+    }
+    public int getOptimisticHours() {
+        return optimisticHours;
+    }
+    public int getLikelyHours() {
+        return likelyHours;
+    }
+    public int getPessimisticHours() {
+        return pessimisticHours;
+    }
 }
