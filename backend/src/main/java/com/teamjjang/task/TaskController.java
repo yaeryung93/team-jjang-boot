@@ -20,4 +20,8 @@ public class TaskController {
     public TaskDtos.View changeAssignee(@PathVariable Long projectId, @PathVariable Long taskId, @Valid @RequestBody TaskDtos.ChangeAssignee input) {
         return service.changeAssignee(projectId, taskId, input);
     }
+    @PatchMapping("/{taskId}")
+    public TaskDtos.View update(@PathVariable Long projectId, @PathVariable Long taskId, @Valid @RequestBody TaskDtos.Update input) {
+        return service.update(projectId, taskId, input);
+    }
 }

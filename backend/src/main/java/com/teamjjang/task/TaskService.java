@@ -49,4 +49,14 @@ public class TaskService {
         task.changeAssignee(assignee);
         return TaskDtos.View.from(task);
     }
+
+    @Transactional
+    public TaskDtos.View update(Long projectId, Long taskId, TaskDtos.Update input) {
+        Task task=require(projectId, taskId);
+        if (input.optimisticHours()>input.likelyHours() || input.likelyHours()>input.pessimisticHours()){
+            throw ApiException.badRequest("예상 시간은 낙관 ≤ 보통 ≤ 비관 순서여야 합니다.");
+        }
+        task.updateInfo(input.title().trim(), input.optimisticHours(), input.likelyHours(), input.pessimisticHours());
+        return TaskDtos.View.from(task);
+    }
 }

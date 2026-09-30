@@ -37,6 +37,12 @@ public class Task {
         this.likelyHours = likelyHours;
         this.pessimisticHours = pessimisticHours;
     }
+    public void updateInfo(String title, int optimisticHours, int likelyHours, int pessimisticHours) {
+        this.title=title;
+        this.optimisticHours=optimisticHours;
+        this.likelyHours=likelyHours;
+        this.pessimisticHours=pessimisticHours;
+    }
     public void changeAssignee(Member assignee){
         this.assignee=assignee;
     }

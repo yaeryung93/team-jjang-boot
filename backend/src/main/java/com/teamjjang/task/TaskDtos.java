@@ -12,4 +12,5 @@ public final class TaskDtos {
         }
     }
     public record ChangeAssignee(@Positive Long assigneeId){}
+    public record Update(@NotBlank @Size(max=200) String title, @NotNull @Min(1) @Max(100000) Integer optimisticHours,@NotNull @Min(1) @Max(100000) Integer likelyHours, @NotNull @Min(1) @Max(100000) Integer pessimisticHours){}
 }

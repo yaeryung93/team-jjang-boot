@@ -242,4 +242,105 @@ class ApiIntegrationTest {
             }
         }
     }
+
+    private java.util.Map<String, Object> taskUpdateBody() {
+        java.util.Map<String, Object> body=new java.util.HashMap<>();
+        body.put("title", "  수정한 작업  ");
+        body.put("optimisticHours", 3);
+        body.put("likelyHours", 6);
+        body.put("pessimisticHours", 9);
+        return body;
+    }
+
+    @Test void updatesTaskWhilePreservingAssigneeAndProgress() throws Exception {
+        long projectId=project();
+        long memberId=memberFor(projectId);
+        JsonNode original=create("/api/projects/"+projectId+"/tasks", taskBody(memberId, 1, 2, 3));
+        long taskId=original.get("id").asLong();
+        String path="/api/projects/"+projectId+"/tasks/"+taskId;
+        create(path+"/progress", "{\"percent\":40,\"note\":\"진행 중\"}");
+        JsonNode history=json.readTree(request("GET", path+"/progress", null).body());
+        var response=request("PATCH", path, json.writeValueAsString(taskUpdateBody()));
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+        JsonNode updated=json.readTree(response.body());
+        assertThat(updated.get("title").asText()).isEqualTo("수정한 작업");
+        assertThat(updated.get("optimisticHours").asInt()).isEqualTo(3);
+        assertThat(updated.get("likelyHours").asInt()).isEqualTo(6);
+        assertThat(updated.get("pessimisticHours").asInt()).isEqualTo(9);
+        for (String field : new String[] {"id", "projectId", "assigneeId"}) {
+            assertThat(updated.get(field)).isEqualTo(original.get(field));
+        }
+        assertThat(storedTask(projectId, taskId)).isEqualTo(updated);
+        assertThat(json.readTree(request("GET", path+"/progress", null).body())).isEqualTo(history);
+    }
+
+    @Test void acceptsEqualEstimatesAndTaskUpdateBoundaries() throws Exception {
+        long projectId=project();
+        long taskId=create("/api/projects/"+projectId+"/tasks", taskBody(null, 1, 2, 3)).get("id").asLong();
+        for (int hours : new int[] {1, 100000}) {
+            var body=taskUpdateBody();
+            body.put("title", "가".repeat(200));
+            body.put("optimisticHours", hours);
+            body.put("likelyHours", hours);
+            body.put("pessimisticHours", hours);
+            var response=request("PATCH", "/api/projects/"+projectId+"/tasks/"+taskId, json.writeValueAsString(body));
+            assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+            JsonNode stored=storedTask(projectId, taskId);
+            assertThat(stored.get("title").asText()).isEqualTo("가".repeat(200));
+            for (String field : new String[] {"optimisticHours", "likelyHours", "pessimisticHours"}) {
+                assertThat(stored.get(field).asInt()).isEqualTo(hours);
+            }
+            assertThat(stored.get("assigneeId").isNull()).isTrue();
+        }
+    }
+
+    @Test void rejectsInvalidTaskUpdatesWithoutPartialChanges() throws Exception {
+        long projectId=project();
+        JsonNode original=create("/api/projects/"+projectId+"/tasks", taskBody(memberFor(projectId), 1, 2, 3));
+        long taskId=original.get("id").asLong();
+        String path="/api/projects/"+projectId+"/tasks/"+taskId;
+        java.util.List<String> invalidBodies=new java.util.ArrayList<>();
+        for (String field : new String[] {"title", "optimisticHours", "likelyHours", "pessimisticHours"}) {
+            var missing=taskUpdateBody();
+            missing.remove(field);
+            invalidBodies.add(json.writeValueAsString(missing));
+            Object[] invalidValues;
+            if (field.equals("title")) {
+                invalidValues=new Object[] {null, "", "   ", "가".repeat(201)};
+            } else {
+                invalidValues=new Object[] {null, 0, -1, 1.5, 100001};
+            }
+            for (Object value : invalidValues) {
+                var body=taskUpdateBody();
+                body.put(field, value);
+                invalidBodies.add(json.writeValueAsString(body));
+            }
+        }
+        for (int[] hours : new int[][] {{7, 6, 9}, {3, 10, 9}}) {
+            var body=taskUpdateBody();
+            body.put("optimisticHours", hours[0]);
+            body.put("likelyHours", hours[1]);
+            body.put("pessimisticHours", hours[2]);
+            invalidBodies.add(json.writeValueAsString(body));
+        }
+        for (String body : invalidBodies) {
+            var response=request("PATCH", path, body);
+            assertThat(response.statusCode()).as(body+" -> "+response.body()).isEqualTo(400);
+            assertThat(storedTask(projectId, taskId)).isEqualTo(original);
+        }
+    }
+
+    @Test void rejectsMissingAndOtherProjectTasksOnInfoUpdate() throws Exception {
+        long projectId=project();
+        JsonNode original=create("/api/projects/"+projectId+"/tasks", taskBody(null, 1, 2, 3));
+        long taskId=original.get("id").asLong();
+        for (String path : new String[] {
+                "/api/projects/"+project()+"/tasks/"+taskId,
+                "/api/projects/"+projectId+"/tasks/"+Long.MAX_VALUE,
+                "/api/projects/"+Long.MAX_VALUE+"/tasks/"+taskId}) {
+            var response=request("PATCH", path, json.writeValueAsString(taskUpdateBody()));
+            assertThat(response.statusCode()).as(response.body()).isEqualTo(404);
+            assertThat(storedTask(projectId, taskId)).isEqualTo(original);
+        }
+    }
 }
