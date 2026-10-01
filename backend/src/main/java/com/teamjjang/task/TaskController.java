@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+
 @RestController
 @RequestMapping("/api/projects/{projectId}/tasks")
 public class TaskController {
@@ -24,4 +25,10 @@ public class TaskController {
     public TaskDtos.View update(@PathVariable Long projectId, @PathVariable Long taskId, @Valid @RequestBody TaskDtos.Update input) {
         return service.update(projectId, taskId, input);
     }
+    @DeleteMapping("/{taskId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long projectId, @PathVariable Long taskId) {
+        service.delete(projectId, taskId);
+    }
+
 }
