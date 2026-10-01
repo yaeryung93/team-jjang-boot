@@ -343,4 +343,66 @@ class ApiIntegrationTest {
             assertThat(storedTask(projectId, taskId)).isEqualTo(original);
         }
     }
+
+    @Test void deletesTaskWithoutRemovingProjectMemberOrOtherTask() throws Exception {
+        long projectId=project();
+        long memberId=memberFor(projectId);
+        String base="/api/projects/"+projectId;
+        JsonNode projectBefore=json.readTree(request("GET", base, null).body());
+        JsonNode membersBefore=json.readTree(request("GET", base+"/members", null).body());
+        long taskId=create(base+"/tasks", taskBody(memberId, 1, 2, 3)).get("id").asLong();
+        JsonNode other=create(base+"/tasks", taskBody(memberId, 2, 3, 4));
+        var response=request("DELETE", base+"/tasks/"+taskId, null);
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(204);
+        assertThat(response.body()).isEmpty();
+        JsonNode remaining=json.readTree(request("GET", base+"/tasks", null).body());
+        assertThat(remaining.size()).isEqualTo(1);
+        assertThat(remaining.get(0)).isEqualTo(other);
+        assertThat(json.readTree(request("GET", base, null).body())).isEqualTo(projectBefore);
+        assertThat(json.readTree(request("GET", base+"/members", null).body())).isEqualTo(membersBefore);
+        assertThat(request("DELETE", base+"/tasks/"+taskId, null).statusCode()).isEqualTo(404);
+    }
+
+    @Test void refusesDeletionWithProgressEvenAtZeroPercent() throws Exception {
+        long projectId=project();
+        String base="/api/projects/"+projectId+"/tasks";
+        JsonNode original=create(base, taskBody(memberFor(projectId), 1, 2, 3));
+        long taskId=original.get("id").asLong();
+        String path=base+"/"+taskId;
+        for (int percent : new int[] {0, 100}) {
+            create(path+"/progress", "{\"percent\":"+percent+",\"note\":\"기록\"}");
+            JsonNode history=json.readTree(request("GET", path+"/progress", null).body());
+            var response=request("DELETE", path, null);
+            assertThat(response.statusCode()).as(response.body()).isEqualTo(409);
+            assertThat(storedTask(projectId, taskId)).isEqualTo(original);
+            assertThat(json.readTree(request("GET", path+"/progress", null).body())).isEqualTo(history);
+        }
+    }
+
+    @Test void refusesDeletionOfMissingOrOtherProjectTask() throws Exception {
+        long projectId=project();
+        long otherProject=project();
+        JsonNode original=create("/api/projects/"+projectId+"/tasks", taskBody(null, 1, 2, 3));
+        long taskId=original.get("id").asLong();
+        for (String path : new String[] {
+                "/api/projects/"+otherProject+"/tasks/"+taskId,
+                "/api/projects/"+projectId+"/tasks/"+Long.MAX_VALUE,
+                "/api/projects/"+Long.MAX_VALUE+"/tasks/"+taskId}) {
+            assertThat(request("DELETE", path, null).statusCode()).isEqualTo(404);
+            assertThat(storedTask(projectId, taskId)).isEqualTo(original);
+        }
+        create("/api/projects/"+projectId+"/tasks/"+taskId+"/progress", "{\"percent\":10,\"note\":\"진행 중\"}");
+        assertThat(request("DELETE", "/api/projects/"+otherProject+"/tasks/"+taskId, null).statusCode()).isEqualTo(404);
+        assertThat(storedTask(projectId, taskId)).isEqualTo(original);
+    }
+
+    @Test void allowsDeletePreflightFromReact() throws Exception {
+        var response=client.send(HttpRequest.newBuilder(URI.create("http://localhost:"+port+"/api/projects/1/tasks/1"))
+                .header("Origin", "http://localhost:5173")
+                .header("Access-Control-Request-Method", "DELETE")
+                .method("OPTIONS", HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString());
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+        assertThat(response.headers().firstValue("Access-Control-Allow-Origin")).contains("http://localhost:5173");
+        assertThat(response.headers().firstValue("Access-Control-Allow-Methods").orElse("")).contains("DELETE");
+    }
 }

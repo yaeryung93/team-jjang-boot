@@ -3,8 +3,12 @@ package com.teamjjang.task;
 import com.teamjjang.common.ApiException;
 import com.teamjjang.member.Member;
 import com.teamjjang.member.MemberRepository;
+import com.teamjjang.progress.TaskProgress;
+import com.teamjjang.progress.TaskProgressRepository;
 import com.teamjjang.project.ProjectService;
 import java.util.List;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,8 +18,12 @@ public class TaskService {
     private final TaskRepository tasks;
     private final MemberRepository members;
     private final ProjectService projects;
-    public TaskService(TaskRepository tasks, MemberRepository members, ProjectService projects) {
-        this.tasks = tasks; this.members = members; this.projects = projects;
+    private final TaskProgressRepository progress;
+    public TaskService(TaskRepository tasks, MemberRepository members, ProjectService projects, TaskProgressRepository progress) {
+        this.tasks=tasks;
+        this.members=members;
+        this.projects=projects;
+        this.progress=progress;
     }
     public Task require(Long projectId, Long taskId) {
         return tasks.findByIdAndProject_Id(taskId, projectId).orElseThrow(() -> ApiException.notFound("작업"));
@@ -58,5 +66,15 @@ public class TaskService {
         }
         task.updateInfo(input.title().trim(), input.optimisticHours(), input.likelyHours(), input.pessimisticHours());
         return TaskDtos.View.from(task);
+    }
+
+    @Transactional
+    public void delete(Long projectId, Long taskId) {
+        Task task=require(projectId, taskId);
+        boolean hasProgress=progress.existsByTask_Id(taskId);
+        if(hasProgress){
+            throw new ApiException(HttpStatus.CONFLICT, "진행률 기록이 있는 작업은 삭제할 수 없습니다.");
+        }
+        tasks.delete(task);
     }
 }
